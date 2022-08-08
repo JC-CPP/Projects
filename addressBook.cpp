@@ -1,8 +1,7 @@
 #include <vector>
 #include <iostream>
-#include <random>
-#include <chrono>
-
+#include <fstream>
+#include <tuple>
 
 
 struct InfoStruct // the data type to hold account information (address book)
@@ -19,8 +18,76 @@ void PrintAddressBook(std::vector<InfoStruct> AddressBook); // prints out conten
 int main()
 {
     int UserChoice;
+    char YNuserChoice;
+    bool loadAccounts = 0;
     std::vector<InfoStruct> AddressBook; // creates a vector for the addresses ( our address book ) for us to play with
     struct InfoStruct TempInfo; // This will hold info whilst we run a function, e.g. if we want to add a contact this will hold the new contact info then be forwarded into the addressbook
+    std::string AccountLineHolder;
+
+    //CHECKS IF THERE ARE ANY ACCOUNTS IN TXT FILE
+    std::ifstream accountsFile; // variable to load the file into
+    accountsFile.open("addressbook.txt", std::ios::in); // attempts to open the txt file with our account names in
+    if(accountsFile.is_open()) // if it was able to open the file then ask the user if it wants to load the accounts in
+    {
+        while(1)
+        {
+            std::cout << "Accounts file found! Would you like to load the account in? (Y/N) ";
+            std::cin >> YNuserChoice;
+            YNuserChoice = std::tolower(YNuserChoice);
+            if(YNuserChoice == 'n' || YNuserChoice == 'y')
+            {
+                break;
+            }
+            else
+                std::cout << "\nBad input. Try again\n";
+        }
+        if(YNuserChoice == 'y')
+        {
+            loadAccounts = 1; // set accounts loaded to true
+        }
+    }
+    else // else if the program wasn't able to open / make the file then tell the user
+        std::cout << "\nAccounts file couldn't be created / opened.\n";
+
+    if(loadAccounts == 1)
+    {
+        int Index = 0; // index for what part of the string we're extracting. (3 is max (name, number, email) ).
+        std::string delimiter = ",";
+        std::tuple<std::string, int, std::string> Account; // holds different parts of information per account to load into our vector
+        std::string token; // holds the extracted piece of information from txt flie
+
+        while(std::getline(accountsFile, AccountLineHolder))  // opens the file and puts each line into the string AccountLineHolder
+        {
+            size_t pos = 0; // holds position we're at in the string
+
+            while ((pos = AccountLineHolder.find(delimiter)) != std::string::npos) // keeps us in the while loop until there's no more text no the line we're substringing
+            {
+                token = AccountLineHolder.substr(0, pos); // pulls a section from the line we took from the txt file
+                if(Index == 0) // correlating to the index we're at, throws it into our tuple
+                {
+                    std::get<0>(Account) = token;
+                }
+                else if(Index == 1)
+                {
+                    std::get<1>(Account) = std::stoi(token);
+                }
+                else
+                    std::get<2>(Account) = token;
+
+                AccountLineHolder.erase(0, pos + delimiter.length()); // deletes the part of the string we just used
+                ++Index;
+            }
+            TempInfo.Username = std::get<0>(Account);
+            TempInfo.Number = std::get<1>(Account);
+            TempInfo.Email = std::get<2>(Account);
+            AddressBook.push_back(TempInfo); // loads our pulled account line from the txt file into our vector
+            Index = 0; // resets the index var
+
+        }
+        accountsFile.close(); // close the file because we've finished loading it into our program
+    }
+
+
     while(1)
     {
         while(1)
@@ -49,6 +116,20 @@ int main()
         }
         else if(UserChoice == 3)
         {
+            if(loadAccounts == 1)
+            {
+                std::cout << "\nWould you like to save the changes made to the account list? (Y/N) ";
+                std::cin >> YNuserChoice;
+                if(YNuserChoice == 'y')
+                {
+                    std::fstream AccountBookF; // Creates a new variable for the file that is used for writing
+                    AccountBookF.open("addressbook.txt", std::ios::out); // opens the file as a writeable var
+                    for(int i = 0; i < AddressBook.size(); ++i)
+                    {
+                        AccountBookF << AddressBook[i].Username << "," << AddressBook[i].Number << "," << AddressBook[i].Email << "," << std::endl;
+                    }
+                }
+            }
             break;
         }
     }
